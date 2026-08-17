@@ -42,14 +42,26 @@ void main() {
     expect(find.text('Soy yo'), findsNothing);
     expect(find.text('Turno de'), findsOneWidget);
     expect(find.text('Jugador 1'), findsOneWidget);
+    expect(find.text('🙂'), findsOneWidget);
     expect(find.text('DESLIZA Y MANTÉN'), findsOneWidget);
+
+    final backSize = tester.getSize(find.byKey(const ValueKey('reveal-back')));
+    final coverSize = tester.getSize(
+      find.byKey(const ValueKey('reveal-cover')),
+    );
+    expect(coverSize.width, greaterThan(backSize.width));
+    expect(coverSize.height, greaterThan(backSize.height));
 
     final gesture = await tester.startGesture(
       tester.getCenter(find.byKey(const ValueKey('reveal-cover'))),
     );
-    await gesture.moveBy(const Offset(0, -150));
+    await gesture.moveBy(const Offset(0, -400));
     await tester.pump();
     expect(find.text('Suelta para volver a ocultar'), findsOneWidget);
+    final liftedCover = tester.widget<AnimatedContainer>(
+      find.byKey(const ValueKey('reveal-cover')),
+    );
+    expect(liftedCover.transform?.getTranslation().y, -300);
     await gesture.up();
     await tester.pumpAndSettle();
     expect(find.text('La palabra está debajo'), findsOneWidget);

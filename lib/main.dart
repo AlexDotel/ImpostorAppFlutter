@@ -344,8 +344,11 @@ class _GameShellState extends State<GameShell> {
               switchInCurve: ease,
               transitionBuilder: (child, animation) => FadeTransition(
                 opacity: animation,
-                child: ScaleTransition(
-                  scale: Tween(begin: .97, end: 1.0).animate(animation),
+                child: SlideTransition(
+                  position: Tween<Offset>(
+                    begin: const Offset(.055, 0),
+                    end: Offset.zero,
+                  ).animate(CurvedAnimation(parent: animation, curve: ease)),
                   child: child,
                 ),
               ),
@@ -1086,12 +1089,13 @@ class RevealScreen extends StatefulWidget {
 }
 
 class _RevealScreenState extends State<RevealScreen> {
+  static const playerEmojis = ['🙂', '😎', '🤠', '🤓', '🥸', '😊', '🧐', '😄'];
   bool hasViewed = false;
   bool isDragging = false;
   double dragY = 0;
 
   void updateDrag(DragUpdateDetails details) {
-    final next = (dragY + details.delta.dy).clamp(-230.0, 0.0);
+    final next = (dragY + details.delta.dy).clamp(-300.0, 0.0);
     final firstReveal = !hasViewed && next < -72;
     setState(() {
       dragY = next;
@@ -1131,6 +1135,23 @@ class _RevealScreenState extends State<RevealScreen> {
         ],
       ),
       const Spacer(),
+      Container(
+        width: 58,
+        height: 58,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: colorsOf(context).primary.withValues(alpha: .14),
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: colorsOf(context).primary.withValues(alpha: .28),
+          ),
+        ),
+        child: Text(
+          playerEmojis[(widget.index - 1) % playerEmojis.length],
+          style: const TextStyle(fontSize: 31),
+        ),
+      ),
+      const SizedBox(height: 12),
       Text(
         'Turno de',
         style: TextStyle(
@@ -1158,13 +1179,18 @@ class _RevealScreenState extends State<RevealScreen> {
         child: SizedBox(
           width: double.infinity,
           height: 326,
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(30),
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                ColoredBox(
+          child: Stack(
+            clipBehavior: Clip.none,
+            fit: StackFit.expand,
+            children: [
+              DecoratedBox(
+                key: const ValueKey('reveal-back'),
+                decoration: BoxDecoration(
                   color: colorsOf(context).primary,
+                  borderRadius: BorderRadius.circular(30),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(30),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 24,
@@ -1242,7 +1268,13 @@ class _RevealScreenState extends State<RevealScreen> {
                     ),
                   ),
                 ),
-                AnimatedContainer(
+              ),
+              Positioned(
+                left: -2,
+                right: -2,
+                top: -2,
+                bottom: -2,
+                child: AnimatedContainer(
                   key: const ValueKey('reveal-cover'),
                   duration:
                       isDragging || MediaQuery.disableAnimationsOf(context)
@@ -1252,8 +1284,18 @@ class _RevealScreenState extends State<RevealScreen> {
                   transform: Matrix4.translationValues(0, dragY, 0),
                   decoration: BoxDecoration(
                     color: colorsOf(context).surface,
-                    borderRadius: BorderRadius.circular(30),
-                    border: Border.all(color: colorsOf(context).outline),
+                    borderRadius: BorderRadius.circular(32),
+                    border: Border.all(
+                      color: colorsOf(context).outline,
+                      width: 1.5,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: .16),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
                   ),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -1283,8 +1325,8 @@ class _RevealScreenState extends State<RevealScreen> {
                     ],
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
