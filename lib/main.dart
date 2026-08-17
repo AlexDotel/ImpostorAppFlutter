@@ -1086,16 +1086,25 @@ class RevealScreen extends StatefulWidget {
 }
 
 class _RevealScreenState extends State<RevealScreen> {
-  bool revealed = false;
+  bool hasViewed = false;
+  bool isDragging = false;
   double dragY = 0;
 
-  void reveal() {
-    if (revealed) return;
+  void updateDrag(DragUpdateDetails details) {
+    final next = (dragY + details.delta.dy).clamp(-230.0, 0.0);
+    final firstReveal = !hasViewed && next < -72;
     setState(() {
-      revealed = true;
+      dragY = next;
+      if (firstReveal) hasViewed = true;
+    });
+    if (firstReveal) AppAudio.feedback(AppSound.reveal);
+  }
+
+  void closeCard() {
+    setState(() {
+      isDragging = false;
       dragY = 0;
     });
-    AppAudio.feedback(AppSound.reveal);
   }
 
   @override
@@ -1142,136 +1151,149 @@ class _RevealScreenState extends State<RevealScreen> {
       const SizedBox(height: 22),
       GestureDetector(
         behavior: HitTestBehavior.opaque,
-        onVerticalDragUpdate: revealed
-            ? null
-            : (details) => setState(
-                () => dragY = (dragY + details.delta.dy).clamp(-150, 0),
-              ),
-        onVerticalDragEnd: revealed
-            ? null
-            : (details) {
-                if (dragY < -64 || (details.primaryVelocity ?? 0) < -350) {
-                  reveal();
-                } else {
-                  setState(() => dragY = 0);
-                }
-              },
-        child: AnimatedContainer(
-          duration: MediaQuery.disableAnimationsOf(context)
-              ? Duration.zero
-              : const Duration(milliseconds: 220),
-          curve: ease,
+        onVerticalDragStart: (_) => setState(() => isDragging = true),
+        onVerticalDragUpdate: updateDrag,
+        onVerticalDragEnd: (_) => closeCard(),
+        onVerticalDragCancel: closeCard,
+        child: SizedBox(
           width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 48),
-          decoration: BoxDecoration(
-            color: revealed
-                ? colorsOf(context).primary
-                : colorsOf(context).surface,
+          height: 326,
+          child: ClipRRect(
             borderRadius: BorderRadius.circular(30),
-            border: Border.all(
-              color: revealed ? Colors.transparent : colorsOf(context).outline,
-            ),
-          ),
-          transform: Matrix4.translationValues(0, revealed ? 0 : dragY, 0),
-          child: revealed
-              ? Column(
-                  children: [
-                    Icon(
-                      widget.role.isImpostor
-                          ? Icons.theater_comedy_rounded
-                          : Icons.key_rounded,
-                      size: 48,
-                      color: colorsOf(context).onPrimary,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                ColoredBox(
+                  color: colorsOf(context).primary,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 34,
                     ),
-                    const SizedBox(height: 20),
-                    Text(
-                      widget.role.isImpostor
-                          ? 'ERES EL IMPOSTOR'
-                          : 'LA PALABRA ES',
-                      style: TextStyle(
-                        color: colorsOf(context).onPrimary,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 1.2,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    Text(
-                      widget.role.isImpostor ? 'Disimula' : widget.word,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: colorsOf(context).onPrimary,
-                        fontSize: 38,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    if (widget.role.isImpostor && widget.hint.isNotEmpty) ...[
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 8,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          widget.role.isImpostor
+                              ? Icons.theater_comedy_rounded
+                              : Icons.key_rounded,
+                          size: 42,
+                          color: colorsOf(context).onPrimary,
                         ),
-                        decoration: BoxDecoration(
-                          color: colorsOf(
-                            context,
-                          ).onPrimary.withValues(alpha: .12),
-                          borderRadius: BorderRadius.circular(99),
-                        ),
-                        child: Text(
-                          'PISTA · ${widget.hint}',
+                        const SizedBox(height: 14),
+                        Text(
+                          widget.role.isImpostor
+                              ? 'ERES EL IMPOSTOR'
+                              : 'LA PALABRA ES',
                           style: TextStyle(
                             color: colorsOf(context).onPrimary,
                             fontWeight: FontWeight.w900,
-                            letterSpacing: .8,
+                            letterSpacing: 1.2,
                           ),
                         ),
-                      ),
-                      const SizedBox(height: 12),
-                    ],
-                    Text(
-                      widget.role.isImpostor
-                          ? 'Escucha bien y finge que sabes la palabra.'
-                          : 'Memorízala. No la digas en voz alta.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: colorsOf(
-                          context,
-                        ).onPrimary.withValues(alpha: .78),
-                        height: 1.4,
-                      ),
+                        const SizedBox(height: 8),
+                        Text(
+                          widget.role.isImpostor ? 'Disimula' : widget.word,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: colorsOf(context).onPrimary,
+                            fontSize: 34,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        if (widget.role.isImpostor &&
+                            widget.hint.isNotEmpty) ...[
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 8,
+                            ),
+                            decoration: BoxDecoration(
+                              color: colorsOf(
+                                context,
+                              ).onPrimary.withValues(alpha: .12),
+                              borderRadius: BorderRadius.circular(99),
+                            ),
+                            child: Text(
+                              'PISTA · ${widget.hint}',
+                              style: TextStyle(
+                                color: colorsOf(context).onPrimary,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: .8,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                        ],
+                        Text(
+                          widget.role.isImpostor
+                              ? 'Escucha bien y finge que sabes la palabra.'
+                              : 'Memorízala. No la digas en voz alta.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: colorsOf(
+                              context,
+                            ).onPrimary.withValues(alpha: .78),
+                            height: 1.35,
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
-                )
-              : Column(
-                  children: [
-                    Icon(
-                      Icons.keyboard_double_arrow_up_rounded,
-                      size: 48,
-                      color: colorsOf(context).primary,
-                    ),
-                    const SizedBox(height: 20),
-                    const Text(
-                      'DESLIZA HACIA ARRIBA',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 1,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      dragY < -30 ? 'Sigue deslizando' : 'Tu rol está oculto',
-                      style: TextStyle(
-                        color: colorsOf(context).onSurfaceVariant,
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
+                AnimatedContainer(
+                  key: const ValueKey('reveal-cover'),
+                  duration:
+                      isDragging || MediaQuery.disableAnimationsOf(context)
+                      ? Duration.zero
+                      : const Duration(milliseconds: 220),
+                  curve: ease,
+                  transform: Matrix4.translationValues(0, dragY, 0),
+                  decoration: BoxDecoration(
+                    color: colorsOf(context).surface,
+                    borderRadius: BorderRadius.circular(30),
+                    border: Border.all(color: colorsOf(context).outline),
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.keyboard_double_arrow_up_rounded,
+                        size: 48,
+                        color: colorsOf(context).primary,
+                      ),
+                      const SizedBox(height: 20),
+                      const Text(
+                        'DESLIZA Y MANTÉN',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 1,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        dragY < -30
+                            ? 'Suelta para volver a ocultar'
+                            : 'La palabra está debajo',
+                        style: TextStyle(
+                          color: colorsOf(context).onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
       const Spacer(),
-      if (revealed)
+      if (hasViewed)
         PrimaryButton(
-          label: 'Ocultar y pasar',
+          label: widget.index == widget.total
+              ? 'Empezar la ronda'
+              : 'Pasar al siguiente',
           icon: Icons.arrow_forward_rounded,
           onTap: widget.onNext,
         )

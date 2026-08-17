@@ -42,10 +42,21 @@ void main() {
     expect(find.text('Soy yo'), findsNothing);
     expect(find.text('Turno de'), findsOneWidget);
     expect(find.text('Jugador 1'), findsOneWidget);
-    expect(find.text('DESLIZA HACIA ARRIBA'), findsOneWidget);
+    expect(find.text('DESLIZA Y MANTÉN'), findsOneWidget);
 
-    await tester.drag(find.text('DESLIZA HACIA ARRIBA'), const Offset(0, -150));
+    final gesture = await tester.startGesture(
+      tester.getCenter(find.byKey(const ValueKey('reveal-cover'))),
+    );
+    await gesture.moveBy(const Offset(0, -150));
+    await tester.pump();
+    expect(find.text('Suelta para volver a ocultar'), findsOneWidget);
+    await gesture.up();
     await tester.pumpAndSettle();
-    expect(find.text('Ocultar y pasar'), findsOneWidget);
+    expect(find.text('La palabra está debajo'), findsOneWidget);
+    expect(find.text('Pasar al siguiente'), findsOneWidget);
+    final cover = tester.widget<AnimatedContainer>(
+      find.byKey(const ValueKey('reveal-cover')),
+    );
+    expect(cover.transform?.getTranslation().y, 0);
   });
 }
